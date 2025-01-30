@@ -25,7 +25,7 @@
  *    By default, 3 without the suffix is a 32 bit int.
  * 10) >> (right shift) shifts off low order bits
  * 11) << (left shift) shifts off high order bits
- * 12) right shift of a signed variable maintains the sign bit; 
+ * 12) right shift of a signed variaoble maintains the sign bit; 
  *     right shift of an unsigned variable brings in 0 as the sign bit
  *
  */
@@ -43,7 +43,16 @@
 */
 uint64_t Tools::buildLong(uint8_t bytes[LONGSIZE])
 {
-  return 0;
+   uint64_t result = bytes[7];
+   result = result << 8 | bytes[6];
+   result = result << 8 | bytes[5];
+   result = result << 8 | bytes[4];
+   result = result << 8 | bytes[3];
+   result = result << 8 | bytes[2];
+   result = result << 8 | bytes[1];
+   result = result << 8 | bytes[0];
+   return result;
+
 }
 
 /** 
@@ -67,7 +76,14 @@ uint64_t Tools::buildLong(uint8_t bytes[LONGSIZE])
 */
 uint64_t Tools::getByte(uint64_t source, int32_t byteNum)
 {
-  return 0;
+  uint64_t result;
+    if (byteNum < 0 || byteNum > 7) {
+        return 0;
+    } else {
+        result = source >> (8 * byteNum);
+        result &= 0x00000000000000ff;
+    }
+    return result;
 }
 
 /**
@@ -97,7 +113,15 @@ uint64_t Tools::getByte(uint64_t source, int32_t byteNum)
  */
 uint64_t Tools::getBits(uint64_t source, int32_t low, int32_t high)
 {
-  return 0;
+  uint64_t result;
+    if (low < 0 || high > 63) {
+        return 0;
+    } else {
+        uint64_t result;
+        result = source << (63-high);
+        result = result >> ((63 - high) + low);
+        return result;
+    }
 }
 
 
@@ -125,7 +149,17 @@ uint64_t Tools::getBits(uint64_t source, int32_t low, int32_t high)
  */
 uint64_t Tools::setBits(uint64_t source, int32_t low, int32_t high)
 {
-  return 0;
+  if (low < 0 || low > 63 || high < 0 || high > 63) {
+        return source;
+    } else {
+        uint64_t answer = source;
+        uint64_t mask = 0xffffffffffffffff;
+        mask = mask << (63-high);
+        mask = mask >> ((63-high) + low);
+        mask = mask << low;
+        answer = answer | mask;
+        return answer;
+    }
 }
 
 /**
@@ -150,7 +184,18 @@ uint64_t Tools::setBits(uint64_t source, int32_t low, int32_t high)
  */
 uint64_t Tools::clearBits(uint64_t source, int32_t low, int32_t high)
 {
-  return 0;
+  if (low < 0 || low > 63 || high > 63 || high < 0) {
+        return source;
+    } else {
+        uint64_t result = source;
+        uint64_t mask = 0xffffffffffffffff;
+        mask = mask << (63-high);
+        mask = mask >> ((63-high) + low);
+        mask = mask << low;
+        mask = ~mask;
+        result = result & mask;
+        return result;
+    }
 }
 
 
@@ -181,7 +226,15 @@ uint64_t Tools::clearBits(uint64_t source, int32_t low, int32_t high)
 uint64_t Tools::copyBits(uint64_t source, uint64_t dest, 
                          int32_t srclow, int32_t dstlow, int32_t length)
 {
-   return 0; 
+   if(dstlow + length > 64 || srclow + length > 64 
+            || srclow < 0 || dstlow < 0 || length < 0) 
+    {
+        return dest;
+    }
+    uint64_t result  = getBits(source, srclow, srclow + length - 1);
+    int64_t ret = clearBits(dest, dstlow, dstlow + length - 1); 
+    result <<= (dstlow);
+    return (ret | result);
 }
 
 
@@ -206,7 +259,42 @@ uint64_t Tools::copyBits(uint64_t source, uint64_t dest,
  */
 uint64_t Tools::setByte(uint64_t source, int32_t byteNum)
 {
-  return 0;
+  uint64_t result = source;
+    if(byteNum < 0 || byteNum > 7) {
+        return source;
+    } else {
+        uint64_t mask = 0x0000000000000000;
+        switch (byteNum) {
+            case 0:
+                mask = 0x00000000000000ff;
+                break;
+            case 1:
+                mask = 0x000000000000ff00;
+                break;
+            case 2:
+                mask = 0x0000000000ff0000;
+                break;
+            case 3:
+                mask = 0x00000000ff000000;
+                break;
+            case 4:
+                mask = 0x000000ff00000000;
+                break;
+            case 5:
+                mask = 0x0000ff0000000000;
+                break;
+            case 6:
+                mask = 0x00ff000000000000;
+                break;
+            case 7:
+                mask = 0xff00000000000000;
+                break;
+            default:
+                break;
+        }
+        result = result | mask;
+        return result;
+    }
 }
 
 
@@ -228,7 +316,8 @@ uint64_t Tools::setByte(uint64_t source, int32_t byteNum)
  */
 uint64_t Tools::sign(uint64_t source)
 {
-  return 0;
+  uint64_t result = source >> 63;
+    return (result == 1) ? 1:0;
 }
 
 /**
@@ -258,7 +347,16 @@ bool Tools::addOverflow(uint64_t op1, uint64_t op2)
   //      Thus, the way to check for an overflow is to compare the signs of the
   //      operand and the result.  For example, if you add two positive numbers, 
   //      the result should be positive, otherwise an overflow occurred.
-  return false;
+  uint64_t result = op1+op2;
+    if (sign(op1) != sign(op2)){
+       return false; 
+    } else {
+       if (sign(op1) == sign(result)) {
+            return false;
+       } else {
+            return true;
+       }
+    }
 }
 
 /**
@@ -287,5 +385,9 @@ bool Tools::subOverflow(uint64_t op1, uint64_t op2)
   //Note: you can not simply use addOverflow in this function.  If you negate
   //op1 in order to an add, you may get an overflow. 
   //NOTE: the subtraction is op2 - op1 (not op1 - op2).
-  return false;
+  uint64_t result = op2 - op1;
+    if (sign(op1) == sign(op2)) {
+        return false;
+    }
+    return sign(op2) != sign(result);
 }
